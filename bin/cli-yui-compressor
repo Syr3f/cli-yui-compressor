@@ -1,0 +1,160 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+#
+# cli-yui-compressor – Compresses Javascript & CSS Files.
+# @author Seraf Dos Santos <webmaster@cyb3r.ca>
+# @license MIT License
+# @copyright (c) 2012 Seraf Dos Santos
+
+require "yui/compressor"
+require "optparse"
+
+module CliYuiCompressor
+  extend self
+  
+  VERSION = Version = 0.3
+  
+  def execute(*args)
+    charset = 'utf-8';
+    chars_num = 1337
+    optimize = false
+    preserve = false
+    short = false
+    #merge = false
+    #out_filename = nil
+    
+    opts = OptionParser.new do |opts|
+      
+      opts.banner = "Usage: cli-yui-compressor | cyc [options] [filename]"
+      #+" [filename] ..."
+      
+      opts.on('-c', '--charset [CHARSET]', 'Sets the output charset (CSS & JS). Default: '+charset) do |c|
+        charset = c
+      end
+      
+      opts.on('-l', '--line-break [NUMBER]', 'Sets the max output line width (CSS & JS). Default: '+chars_num.to_s()) do |l|
+        chars_num = l
+      end
+      
+      opts.on('-o', '--optimize', 'Sets code optimization on compress (JS Only). Default: '+optimize.to_s()) do |o|
+        optimize = o
+      end
+      
+      opts.on('-p', '--preserve', 'Sets preserved semi-colons (JS Only). Default: '+preserve.to_s()) do |p|
+        preserve = p
+      end
+      
+      opts.on('-s', '--short', 'Sets shortened local variables (JS Only). Default: '+short.to_s()) do |s|
+        short = s
+      end
+      
+      #opts.on('-e', '--merge', 'Flag for files merge.') do |e|
+      #  merge = e
+      #end
+      
+      #opts.on('-f', '--out-filename [FILENAME]', 'Identifies the output filename.') do |f|
+      #  out_filename = f
+      #end
+      
+      opts.on('-v', '--version', 'Print version') do
+        puts CliYuiCompressor::Version
+        exit
+      end
+      
+      opts.on('-h', '--help', 'Display this screen') do
+        puts opts
+        exit
+      end
+    end
+    
+    opts.parse!(args)
+    
+    begin
+      
+      if args.empty?
+        puts opts
+        exit
+      end
+      
+      files = args.inject([]) do |files, file|
+        abort "Can't find #{file}" unless File.exists?(file)
+        files.push({
+          :input      => File.read(file),
+          :filename   => file,
+          :extension  => (File.extname(file) if file.include?('.'))
+        })
+      end
+      
+      for file in files
+        if file[:extension].downcase() == ".css"
+          newfile = compress_css_file(file[:filename],file[:input],charset,chars_num)
+        elsif file[:extension].downcase() == ".js"
+          newfile = compress_js_file(file[:filename],file[:input],charset,chars_num,short,optimize,preserve)
+        end
+      end
+      
+      puts "\ncli-yui-compressor generated "+newfile
+      
+      #if merge == true
+      #  is_css = 0
+      #  is_js = 0
+      #  file_content = ""
+      #  for file in files
+      #    if file[:extension].downcase() == ".css"
+      #      is_css+=1
+      #    elsif file[:extension].downcase() == ".js"
+      #      is_js+=1
+      #    end
+      #    file_content += "\n" + file[:input]
+      #  end
+      #  if is_css == files.length && is_js == 0
+      #    compress_css(out_filename,file_content,charset,chars_num)
+      #  elsif is_js == files.length && is_css == 0
+      #    compress_js(out_filename,file_content,charset,chars_num,short,optimize,preserve)
+      #  end
+      #else
+      #  for file in files
+      #    if file[:extension].downcase() == ".css"
+      #      compress_css(file[:filename],file[:input],charset,chars_num)
+      #    elsif file[:extension].downcase() == ".js"
+      #      compress_js(file[:filename],file[:input],charset,chars_num,short,optimize,preserve)
+      #    end
+      #  end
+      #end
+      
+    rescue => e
+      warn e
+      puts opts
+    end
+  end
+  
+  def compress_css_file(filename,content,charset,line_break)
+    newname = filename.sub(/\.css$/,'.min.css')
+    f = File.new(newname, "w")
+    compressor = YUI::CssCompressor.new(:charset=>charset,:line_break=>line_break)
+    f.puts compressor.compress(content)
+    f.close
+    return newname
+  end
+  
+  def compress_js_file(filename,content,charset,line_break,munge,optimize,preserve)
+    newname = filename.sub(/\.js$/,'.min.js')
+    f = File.new(newname, "w")
+    compressor = YUI::JavaScriptCompressor.new(:charset=>charset,:line_break=>line_break,:munge=>munge,:optimize=>optimize,:preserve_semicolons=>preserve)
+    f.puts compressor.compress(content)
+    f.close
+    return newname
+  end
+  
+  def compress_css_code(content,charset,line_break)
+    compressor = YUI::CssCompressor.new(:charset=>charset,:line_break=>line_break)
+    puts compressor.compress(content)
+  end
+  
+  def compress_js_code(content,charset,line_break,munge,optimize,preserve)
+    compressor = YUI::JavaScriptCompressor.new(:charset=>charset,:line_break=>line_break,:munge=>munge,:optimize=>optimize,:preserve_semicolons=>preserve)
+    puts compressor.compress(content)
+  end
+end
+
+CliYuiCompressor.execute(*ARGV)

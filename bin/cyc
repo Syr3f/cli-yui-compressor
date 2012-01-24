@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+#
+# cyc – Shorthand for cli-yui-compressor – Compresses Javascript & CSS Files with yui-compressor
+# @author Seraf Dos Santos <webmaster@cyb3r.ca>
+# @license MIT License
+# @copyright (c) 2012 Seraf Dos Santos
+
+system("cli-yui-compressor "+ARGV.join(" "))
